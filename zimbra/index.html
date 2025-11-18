@@ -1,0 +1,94 @@
+<title>Adminka</title>
+<style>p {
+  ;
+ } .label{margin-left: 30px;}</style>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <meta charset="UTF-8">
+
+   <br>
+	
+	<form id="sendform">
+	<h1 class="label"> Send and Apply Galsync <br> </h1>
+	<table width="500" border =0 >
+		<colgroup>
+		<col style="width: 40%;">
+		<col style="width: 60%;">
+	 	 </colgroup>
+		<tr>
+		  <td> <label class="label">Email</label></td>
+		  <td><input type="text" name="email" value="" size= 30></td>
+	      <td><input type="submit" name="sendbtn0" value="Send" ></td>
+		</tr>
+	</table>
+		<br>
+	</form>
+	
+	<br>
+	<form id="addform">
+	<h1 class="label"> Add to Distribution List info@domen.ru<br> </h1>
+	<table width="500" border =0 >
+		<colgroup>
+		<col style="width: 40%;">
+		<col style="width: 60%;">
+	 	 </colgroup>
+		<tr>
+		  <td> <label class="label">Email</label></td>
+		  <td><input type="text" name="email" value="" size= 30></td>
+	      <td><input type="submit" name="sendbtn1" value="Add" ></td>
+		</tr>
+	</table>
+		<br>
+	</form>
+
+
+<script>
+$("#sendform").on("submit", function(){
+	var myButton = document.getElementsByName('sendbtn0')[0];
+	myButton.setAttribute('disabled', '');
+	
+	$.ajax({
+
+		url: 'handlerZimbraGal.php',
+		method: 'post',
+		dataType: 'html',
+		data: $(this).serialize(),
+		success: function(data){
+			alert(data);
+			myButton.removeAttribute('disabled');
+			
+
+		}
+
+	});
+
+	return false;
+
+});
+</script>
+
+<script>
+$("#addform").on("submit", function(){
+	var myButton = document.getElementsByName('sendbtn1')[0];
+	myButton.setAttribute('disabled', '');
+	
+	$.ajax({
+
+		url: 'handlerZimbraDistribution.php',
+		method: 'post',
+		dataType: 'html',
+		data: $(this).serialize(),
+		success: function(data){
+			alert(data);
+			myButton.removeAttribute('disabled');
+			
+
+		}
+
+	});
+
+	return false;
+
+});
+</script>
+
+
