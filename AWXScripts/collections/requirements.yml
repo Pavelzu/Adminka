@@ -1,0 +1,4 @@
+collections:
+  - name: community.routeros
+    src: https://github.com/ansible-collections/community.routeros
+  
