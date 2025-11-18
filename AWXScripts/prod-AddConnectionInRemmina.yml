@@ -1,0 +1,33 @@
+- name: Add Connection In Remmina
+  hosts: all
+  become: yes
+  tasks:
+      - name: Recursively remove directory
+        ansible.builtin.file:
+          path: /home/user/.local/share/remmina/
+          state: absent
+      - name: Create remmina connections directory
+        file:
+          path=/home/user/.local/share/remmina/
+          mode=0755
+          owner=user
+          group=user
+          state=directory      
+      - name: copy a cfg file
+        copy:
+          src: prod-group_rdpConnection_Host.remmina
+          dest: /home/user/.local/share/remmina/group_rdpConnection-{{login}}_{{host}}.remmina
+          owner: user
+          group: user
+          mode: '0664'
+      - name: Replace a 1stline in a file
+        ansible.builtin.lineinfile:
+          path: /home/user/.local/share/remmina/group_rdpConnection-{{login}}_{{host}}.remmina
+          regexp: '^username='
+          line: 'username={{login}}'
+      - name: Replace a 2ndline in a file
+        ansible.builtin.lineinfile:
+          path: /home/user/.local/share/remmina/group_rdpConnection-{{login}}_{{host}}.remmina
+          regexp: '^server='
+          line: 'server={{host}}'
+

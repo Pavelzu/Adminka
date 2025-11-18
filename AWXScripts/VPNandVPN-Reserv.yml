@@ -1,0 +1,35 @@
+- name: VPNandVPN-Reserv
+  hosts: all
+  become: yes
+  tasks:
+      - name: copy mainVPN config
+        copy:
+          #src: Goreltex-VPN.nmconnection
+          src: Goreltex-VPN.nmconnection
+          dest: /etc/NetworkManager/system-connections/Goreltex-VPN.nmconnection
+          owner: root
+          group: root
+          mode: '0600'
+
+      - name: copy reservVPN config
+        copy:
+          src: Goreltex-VPN-Reserv.nmconnection
+          dest: /etc/NetworkManager/system-connections/Goreltex-VPN-Reserv.nmconnection
+          owner: root
+          group: root
+          mode: '0600'
+
+      - name: Restart service NetworkManager
+        ansible.builtin.service:
+          name: NetworkManager
+          state: restarted
+
+      - name: NetworkManager connection permittions
+        ansible.builtin.shell:
+          cmd: nmcli connection modify Goreltex-VPN connection.permissions "user:user"
+
+      - name: NetworkManager connection permittions
+        ansible.builtin.shell:
+          cmd: nmcli connection modify Goreltex-VPN-Reserv connection.permissions "user:user"
+
+

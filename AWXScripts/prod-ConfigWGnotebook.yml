@@ -1,0 +1,199 @@
+- name: Send GW Config To Notebook
+  gather_facts: no
+  hosts: all
+  become: yes
+  tasks:
+      - name: check packages
+        package_facts:
+          manager: auto
+
+      - name: Install remmina 
+        ansible.builtin.apt:
+          name: remmina 
+          state: latest
+
+      - name: Create remmina conf directory
+        file:
+          path=/home/user/.config/remmina/
+          mode=0755
+          owner=root
+          group=root
+          state=directory    
+ 
+      - name: Copy remmina protect file
+        copy:
+          src: prod-remmina.pref
+          dest: /home/user/.config/remmina/remmina.pref
+          owner: root
+          group: root
+          mode: '0755'
+
+      - name: Create user desctop directory
+        file:
+          path: /home/user/Desktop
+          mode: '0755'
+          owner: "user"
+          group: "user"
+          state: directory
+
+      - name: Copy remmina shortcut file
+        copy:
+          src: prod-org.remmina.Remmina.desktop
+          dest: /home/user/Desktop/org.remmina.Remmina.desktop
+          owner: root
+          group: root
+          mode: '0755'
+      - name: Protect file
+        ansible.builtin.shell:
+          cmd: chattr +i /home/user/Desktop/org.remmina.Remmina.desktop
+
+      - name: Copy anydesk deb
+        copy:
+          src: prod-anydesk_6.4.0-1_amd64.deb
+          dest: /tmp/anydesk_6.4.0-1_amd64.deb
+          owner: root
+          group: root
+          mode: '0600'
+        when: "'anydesk' not in ansible_facts.packages"
+        #when: anydesk_deb_check.stderr.find('no packages found') != -1 #if Anydesk not installed
+
+      - name: Install anydesk deb
+        apt: deb="/tmp/anydesk_6.4.0-1_amd64.deb"
+        when: "'anydesk' not in ansible_facts.packages"
+        #when: anydesk_deb_check.stderr.find('no packages found') != -1 #if Anydesk not installed
+      
+      - name: Copy anydesk system.conf part-file
+        copy:
+          src: prod-AnydeskConfPart.txt 
+          dest: /etc/anydesk/prod-AnydeskConfPart.txt 
+          owner: root
+          group: root
+          mode: '0644'
+        when: "'anydesk' not in ansible_facts.packages"
+
+      - name:  Enable untagged connection to anydesk
+        ansible.builtin.shell:
+          cmd: cat /etc/anydesk/prod-AnydeskConfPart.txt > /etc/anydesk/system.conf
+        when: "'anydesk' not in ansible_facts.packages"
+
+      - name:  Restart anydesk
+        ansible.builtin.shell:
+          cmd: systemctl restart anydesk
+        when: "'anydesk' not in ansible_facts.packages"
+  
+      - name: Find files
+        find:
+          paths: /etc/NetworkManager/system-connections
+          contains: type=vpn
+        register: found_files
+
+      - file:
+          path: "{{item.path}}"
+          state: absent
+        with_items: "{{ found_files.files }}"
+
+      - name: Restart service NetworkManager
+        ansible.builtin.service:
+          name: NetworkManager
+          state: restarted
+      
+      - name: Install Wireguard 
+        ansible.builtin.apt:
+          name: wireguard 
+          state: latest
+        when: "'wireguard' not in ansible_facts.packages"
+#        when: wg_deb_check.stderr.find('no packages found') == -1 and wg_deb_check.stderr.find('ни один пакет') == -1 #if WG not installed
+
+      - name: Create WG conf directory
+        file:
+          path=/etc/wireguard
+          mode=0600
+          owner=root
+          group=root
+          state=directory 
+
+      - name: KeyGen
+        ansible.builtin.shell:
+          cmd: wg genkey | tee /etc/wireguard/private.key | wg pubkey > /etc/wireguard/public.key
+
+      - name: WG Down
+        ignore_errors: True
+        ansible.builtin.shell:
+          cmd: wg-quick down wg0
+        when: "'wireguard' in ansible_facts.packages"
+        #when: wg_deb_check.stderr.find('no packages found') == -1 #if WG installed
+
+      - name: copy a cfg file
+        copy:
+          src: prod-wg0.conf
+          dest: /etc/wireguard/wg0.conf
+          owner: root
+          group: root
+          mode: '0600'
+
+      - name: Replace a 1stline in a file
+        ansible.builtin.lineinfile:
+          path: /etc/wireguard/wg0.conf
+          regexp: '^PrivateKey = '
+          line: 'PrivateKey = {{privkey}}'
+
+      - name: Replace a 2nd in a file
+        ansible.builtin.lineinfile:
+          path: /etc/wireguard/wg0.conf
+          regexp: '^Address = '
+          line: 'Address = {{ip}}/32'
+        
+      - name: Replace a 3nd in a file
+        ansible.builtin.lineinfile:
+          path: /etc/wireguard/wg0.conf
+          regexp: '^AllowedIPs ='
+          line: 'AllowedIPs = {{allowedaddressNb}}'
+
+      - name: Replace priv key
+        ansible.builtin.lineinfile:
+          path: /etc/wireguard/private.key
+          regexp: '^'
+          line: '{{privkey}}'
+
+      - name: Replace pub key
+        ansible.builtin.lineinfile:
+          path: /etc/wireguard/public.key
+          regexp: '^'
+          line: '{{pubkey}}'
+
+      - name: WG Up
+        ansible.builtin.shell:
+          cmd: wg-quick up wg0
+      
+      - name: Enable WG
+        ansible.builtin.shell:
+          cmd: systemctl enable wg-quick@wg0
+
+      - name: Create fallover directory
+        file:
+          path=/fallover
+          mode=0700
+          owner=root
+          group=root
+          state=directory
+
+      - name: copy fallover file
+        copy:
+          src: prod-RemoteNBFallover.sh
+          dest: /fallover/RemoteNBFallover.sh
+          owner: root
+          group: root
+          mode: '0700'
+
+      - name: Creates a cron falloverjob file under /etc/cron.d
+        ansible.builtin.cron:
+          name: fallover
+          minute: "*/1"
+          hour: "*"
+          day: "*"
+          month: "*"
+          weekday: "*"
+          user: root
+          job: "/fallover/RemoteNBFallover.sh"
+          cron_file: falloverjob
+

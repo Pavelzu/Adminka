@@ -1,0 +1,10 @@
+- name: Install {{app}} #Remmina - ok 
+  hosts: all
+  become: yes
+  tasks:
+
+    - name: Install {{app}} 
+      ansible.builtin.apt:
+        name: "{{app}}" 
+        state: latest
+

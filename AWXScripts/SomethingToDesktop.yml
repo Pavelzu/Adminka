@@ -1,0 +1,22 @@
+- name: Create undeletable shortcut
+  hosts: all
+  become: yes
+  tasks:
+      - name: Create desctop directory
+        file:
+          path: /home/{{username}}/Desktop
+          mode: '0755'
+          owner: "{{username}}"
+          group: "{{username}}"
+          state: directory
+
+      - name: Copy shortcut file
+        copy:
+          src: "{{file}}"
+          dest: /home/{{username}}/Desktop/{{file}}
+          owner: root
+          group: root
+          mode: '0755'
+      - name: Protect file
+        ansible.builtin.shell:
+            cmd: chattr +i /home/{{username}}/Desktop/{{file}}

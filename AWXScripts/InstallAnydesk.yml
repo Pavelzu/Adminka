@@ -1,0 +1,22 @@
+- name: Install Anydesk
+  hosts: all
+  become: yes
+  tasks:
+
+    - name: Add key
+      ansible.builtin.shell:
+        cmd: wget -qO - https://keys.anydesk.com/repos/DEB-GPG-KEY | sudo apt-key add -
+
+    - name: Add repo
+      ansible.builtin.shell:
+        cmd: echo "deb http://deb.anydesk.com/ all main" | sudo tee /etc/apt/sources.list.d/anydesk-stable.list
+    
+    - name: Run the equivalent of "apt-get update" as a separate step
+      ansible.builtin.apt:
+        update_cache: yes
+        force_apt_get: yes
+
+    - name: Install Anydesk 
+      ansible.builtin.apt:
+        name: anydesk 
+        state: latest

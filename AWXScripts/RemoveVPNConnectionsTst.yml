@@ -1,0 +1,15 @@
+- name: REmove vpns
+  hosts: all
+  become: yes
+  tasks:
+    - name: Find files
+      find:
+        paths: /etc/NetworkManager/system-connections
+        contains: type=vpn
+      register: found_files
+
+    - file:
+        #path: /etc/NetworkManager/system-connections/{{item}}
+        path: "{{item.path}}"
+        state: absent
+      with_items: "{{ found_files.files }}"

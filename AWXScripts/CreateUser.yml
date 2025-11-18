@@ -1,0 +1,14 @@
+- name: Create New User
+  hosts: all
+  become: yes
+  tasks:
+
+    - name: Create {{username}}  
+      ansible.builtin.user:
+          name: "{{username}}"
+          create_home: yes
+          shell: /bin/bash
+
+    - name: Delete Password
+      ansible.builtin.shell:
+          cmd: passwd -d {{username}}

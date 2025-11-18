@@ -1,0 +1,21 @@
+- name: Remmina Protection
+  hosts: all
+  become: yes
+  tasks:
+      - name: Chande remmina conf directory
+        file:
+          path=/home/{{username}}/.config/remmina/
+          mode=0755
+          owner=root
+          group=root
+          state=directory    
+      - name: copy a test file
+        copy:
+          src: remmina.pref
+          dest: /home/{{username}}/.config/remmina/remmina.pref
+          owner: root
+          group: root
+          mode: '0755'
+
+  
+

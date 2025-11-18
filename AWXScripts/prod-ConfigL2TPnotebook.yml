@@ -1,0 +1,173 @@
+- name: Config new L2TP Notebook
+  gather_facts: no
+  hosts: all
+  become: yes
+  tasks:
+    - name: check packages
+      package_facts:
+        manager: auto
+
+    - name: WG Down
+      ignore_errors: True
+      ansible.builtin.shell:
+        cmd: wg-quick down wg0
+      when: "'wireguard' in ansible_facts.packages"
+      #when: wg_deb_check.stderr.find('no packages found') == -1 #if WG installed
+
+    - name: Remove a cron falloverjob file under /etc/cron.d
+      ansible.builtin.cron:
+        name: "fallover"
+        cron_file: falloverjob
+        state: absent
+      when: "'wireguard' in ansible_facts.packages"
+      #when: wg_deb_check.stderr.find('no packages found') == -1 #if WG installed
+
+    - name: Remove wireguard
+      apt:
+        name: wireguard
+        state: absent
+      when: "'wireguard' in ansible_facts.packages"
+      #when: wg_deb_check.stderr.find('no packages found') == -1 #if WG installed
+
+    - name: Remove wireguard directory
+      ansible.builtin.file:
+        path: /etc/wireguard/
+        state: absent
+   
+    - name: Install network-manager-l2tp 
+      ansible.builtin.apt:
+        name: network-manager-l2tp 
+        state: latest
+
+    - name: Network-manager-l2tp-gnome
+      ansible.builtin.apt:
+        name: network-manager-l2tp-gnome 
+        state: latest
+
+    - name: Copy mainVPN config
+      copy:
+        #src: Goreltex-VPN.nmconnection
+        src: prod-Goreltex-VPN.nmconnection
+        dest: /etc/NetworkManager/system-connections/Goreltex-VPN.nmconnection
+        owner: root
+        group: root
+        mode: '0600'
+
+    - name: Copy reservVPN config
+      copy:
+        src: prod-Goreltex-VPN-Reserv.nmconnection
+        dest: /etc/NetworkManager/system-connections/Goreltex-VPN-Reserv.nmconnection
+        owner: root
+        group: root
+        mode: '0600'
+
+    - name: Restart service NetworkManager
+      ansible.builtin.service:
+        name: NetworkManager
+        state: restarted
+
+    - name: NetworkManager connection permittions
+      ansible.builtin.shell:
+        cmd: nmcli connection modify Goreltex-VPN connection.permissions "user:user"
+
+    - name: NetworkManager connection permittions
+      ansible.builtin.shell:
+        cmd: nmcli connection modify Goreltex-VPN-Reserv connection.permissions "user:user"
+
+    - name: Install remmina 
+      ansible.builtin.apt:
+        name: remmina 
+        state: latest
+
+    - name: Create remmina conf directory
+      file:
+        path=/home/user/.config/remmina/
+        mode=0755
+        owner=root
+        group=root
+        state=directory    
+ 
+    - name: Copy remmina protect file
+      copy:
+        src: prod-remmina.pref
+        dest: /home/user/.config/remmina/remmina.pref
+        owner: root
+        group: root
+        mode: '0755'
+
+    - name: Create user desctop directory
+      file:
+        path: /home/user/Desktop
+        mode: '0755'
+        owner: "user"
+        group: "user"
+        state: directory
+
+    - name: Copy remmina shortcut file
+      copy:
+        src: prod-org.remmina.Remmina.desktop
+        dest: /home/user/Desktop/org.remmina.Remmina.desktop
+        owner: root
+        group: root
+        mode: '0755'
+
+    - name: Protect file
+      ansible.builtin.shell:
+        cmd: chattr +i /home/user/Desktop/org.remmina.Remmina.desktop
+
+    - name: Remove remmina connections directory
+      ansible.builtin.file:
+        path: /home/user/.local/share/remmina/
+        state: absent
+    
+    - name: Create remmina connections directory
+      file:
+        path=/home/user/.local/share/remmina/
+        mode=0755
+        owner=user
+        group=user
+        state=directory     
+
+    - name: Copy anydesk deb
+      copy:
+        src: prod-anydesk_6.4.0-1_amd64.deb
+        dest: /tmp/anydesk_6.4.0-1_amd64.deb
+        owner: root
+        group: root
+        mode: '0600'
+      when: "'anydesk' not in ansible_facts.packages"
+
+    - name: Install anydesk deb
+      apt: deb="/tmp/anydesk_6.4.0-1_amd64.deb"
+      when: "'anydesk' not in ansible_facts.packages"
+
+    - name:  Check pass in anydesk system.conf
+      shell: cat /etc/anydesk/system.conf
+      register: sysconf
+
+    - name: Copy anydesk system.conf part-file
+      when: sysconf.stdout.find('ad.security.pwd=') == -1
+      copy:
+        src: prod-AnydeskConfPart.txt 
+        dest: /etc/anydesk/prod-AnydeskConfPart.txt 
+        owner: root
+        group: root
+        mode: '0644'
+
+    - name: Enable untagged connection to anydesk
+      when: sysconf.stdout.find('ad.security.pwd=') == -1
+      ansible.builtin.shell:
+        cmd: cat /etc/anydesk/prod-AnydeskConfPart.txt > /etc/anydesk/system.conf
+      
+    - name:  Restart anydesk
+      ansible.builtin.shell:
+        cmd: systemctl restart anydesk
+      when: sysconf.stdout.find('ad.security.pwd=') == -1
+
+    
+
+
+
+
+  
+
