@@ -1,0 +1,12 @@
+- name: Getting data from routers
+  hosts: all
+  gather_facts: false
+  vars:
+    ansible_user: AWXSSHUser
+    ansible_connection: network_cli
+    ansible_network_os: routeros
+  tasks:
+      - name: system command
+        community.routeros.command:
+          commands: /interface/wireguard/peers/disable [find name="{{item}}"]
+        loop: "{{names}}"

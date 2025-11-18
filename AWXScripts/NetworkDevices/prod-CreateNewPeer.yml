@@ -1,0 +1,13 @@
+- name: Create New Peer
+  hosts: all
+  gather_facts: false
+  vars:
+    ansible_user: AWXSSHUser
+    ansible_connection: network_cli
+    ansible_network_os: routeros
+  tasks:
+      - name: system command
+        community.routeros.command:
+         commands: 
+           - "/interface/wireguard/peers/add allowed-address={{allowedaddressMikrot}} comment=\"{{comment}}\" interface=Users_WG name={{name}} public-key=\"{{pubkey}}\""
+           

@@ -1,0 +1,24 @@
+- name: Getting data from routers
+  hosts: all
+  gather_facts: false
+  vars:
+    ansible_user: AWXSSHUser
+    ansible_connection: network_cli
+    ansible_network_os: routeros
+  tasks:
+      - name: system command
+        community.routeros.command:
+         commands: /interface/wireguard/peers/ export file=actualpeers.txt 
+#        register: system_resource_print
+
+#  tasks:
+#      - name: system command
+#        community.network.routeros_command:
+#          commands: /system routerboard print
+#        register: system_print
+#      - name: debug print
+#        debug: var=system_print.stdout_lines
+
+
+#    - name: Print its output
+#      ansible.builtin.debug:
